@@ -131,3 +131,193 @@ func TestStringWithError(t *testing.T) {
 		})
 	}
 }
+
+func TestBool(t *testing.T) {
+	setEnvVars := map[string]string{
+		"TEST_BOOL_TRUE":    "true",
+		"TEST_BOOL_T":       "t",
+		"TEST_BOOL_1":       "1",
+		"TEST_BOOL_FALSE":   "false",
+		"TEST_BOOL_F":       "f",
+		"TEST_BOOL_0":       "0",
+		"TEST_BOOL_INVALID": "invalid",
+	}
+
+	for k, v := range setEnvVars {
+		os.Setenv(k, v)
+	}
+	os.Unsetenv("TEST_BOOL_NON_EXISTENT")
+
+	defer func() {
+		for k := range setEnvVars {
+			os.Unsetenv(k)
+		}
+	}()
+
+	testcases := []struct {
+		name     string
+		envName  string
+		expected bool
+	}{
+		{
+			name:     "true value",
+			envName:  "TEST_BOOL_TRUE",
+			expected: true,
+		},
+		{
+			name:     "t value",
+			envName:  "TEST_BOOL_T",
+			expected: true,
+		},
+		{
+			name:     "1 value",
+			envName:  "TEST_BOOL_1",
+			expected: true,
+		},
+		{
+			name:     "false value",
+			envName:  "TEST_BOOL_FALSE",
+			expected: false,
+		},
+		{
+			name:     "f value",
+			envName:  "TEST_BOOL_F",
+			expected: false,
+		},
+		{
+			name:     "0 value",
+			envName:  "TEST_BOOL_0",
+			expected: false,
+		},
+		{
+			name:     "invalid value",
+			envName:  "TEST_BOOL_INVALID",
+			expected: false,
+		},
+		{
+			name:     "non-existent value",
+			envName:  "TEST_BOOL_NON_EXISTENT",
+			expected: false,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if val := getenv.Bool(tc.envName); val != tc.expected {
+				t.Errorf("want: %v, got: %v", tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestBoolWithDefault(t *testing.T) {
+	os.Setenv("TEST_BOOL_TRUE", "true")
+	os.Setenv("TEST_BOOL_FALSE", "false")
+	os.Setenv("TEST_BOOL_INVALID", "invalid")
+	os.Unsetenv("TEST_BOOL_NON_EXISTENT")
+
+	defer func() {
+		os.Unsetenv("TEST_BOOL_TRUE")
+		os.Unsetenv("TEST_BOOL_FALSE")
+		os.Unsetenv("TEST_BOOL_INVALID")
+	}()
+
+	testcases := []struct {
+		name         string
+		envName      string
+		defaultValue bool
+		expected     bool
+	}{
+		{
+			name:         "true value with false default",
+			envName:      "TEST_BOOL_TRUE",
+			defaultValue: false,
+			expected:     true,
+		},
+		{
+			name:         "false value with true default",
+			envName:      "TEST_BOOL_FALSE",
+			defaultValue: true,
+			expected:     false,
+		},
+		{
+			name:         "invalid value with true default",
+			envName:      "TEST_BOOL_INVALID",
+			defaultValue: true,
+			expected:     false,
+		},
+		{
+			name:         "non-existent value with true default",
+			envName:      "TEST_BOOL_NON_EXISTENT",
+			defaultValue: true,
+			expected:     true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if val := getenv.BoolWithDefault(tc.envName, tc.defaultValue); val != tc.expected {
+				t.Errorf("want: %v, got: %v", tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestBoolWithError(t *testing.T) {
+	os.Setenv("TEST_BOOL_TRUE", "true")
+	os.Setenv("TEST_BOOL_FALSE", "false")
+	os.Setenv("TEST_BOOL_INVALID", "invalid")
+	os.Unsetenv("TEST_BOOL_NON_EXISTENT")
+
+	defer func() {
+		os.Unsetenv("TEST_BOOL_TRUE")
+		os.Unsetenv("TEST_BOOL_FALSE")
+		os.Unsetenv("TEST_BOOL_INVALID")
+	}()
+
+	testcases := []struct {
+		name          string
+		envName       string
+		expectedValue bool
+		expectedError error
+	}{
+		{
+			name:          "true value",
+			envName:       "TEST_BOOL_TRUE",
+			expectedValue: true,
+			expectedError: nil,
+		},
+		{
+			name:          "false value",
+			envName:       "TEST_BOOL_FALSE",
+			expectedValue: false,
+			expectedError: nil,
+		},
+		{
+			name:          "invalid value",
+			envName:       "TEST_BOOL_INVALID",
+			expectedValue: false,
+			expectedError: getenv.ErrInvalidValue,
+		},
+		{
+			name:          "non-existent value",
+			envName:       "TEST_BOOL_NON_EXISTENT",
+			expectedValue: false,
+			expectedError: getenv.ErrEnvironmentVariableIsNotSet,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			val, err := getenv.BoolWithError(tc.envName)
+
+			if val != tc.expectedValue {
+				t.Errorf("want: %v, got: %v", tc.expectedValue, val)
+			}
+
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("want: %v, got: %v", tc.expectedError, err)
+			}
+		})
+	}
+}

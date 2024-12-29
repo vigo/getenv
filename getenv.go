@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // sentinel errors.
@@ -45,24 +46,57 @@ func StringWithError(name string) (string, error) {
 
 // Bool retrieves the value of the environment variable named by the key
 // and converts it to a boolean. It returns false if the variable is not set
-// or cannot be converted to a boolean.
+// or cannot be converted to a boolean. true values are:
+// "1", "t", "true", "T", "True", "TRUE".
 func Bool(name string) bool {
 	value := strings.ToLower(os.Getenv(name))
+	trueValues := []string{"1", "t", "true", "T", "True", "TRUE"}
 
-	return slices.Contains([]string{"1", "t", "true"}, value)
+	return slices.Contains(trueValues, value)
 }
 
 // BoolWithDefault retrieves the value of the environment variable named by the key
 // and converts it to a boolean. If the variable is not present or cannot be converted,
-// it returns the provided default value.
-func BoolWithDefault(name string, defaultValue bool) bool {
+// it returns the provided default value, which can be either a bool or a string
+// representing a boolean "1", "t", "true", "T", "True", "TRUE".
+func BoolWithDefault(name string, defaultValue any) bool {
 	value := os.Getenv(name)
 	if value == "" {
-		return defaultValue
+		return parseDefaultBool(defaultValue)
 	}
+
 	value = strings.ToLower(value)
 
-	return slices.Contains([]string{"1", "t", "true"}, value)
+	return isTrue(value)
+}
+
+func parseDefaultBool(defaultValue any) bool {
+	switch v := defaultValue.(type) {
+	case bool:
+		return v
+	case string:
+		return isTrue(strings.ToLower(v))
+	default:
+		return false
+	}
+}
+
+// isTrue checks if a string represents a true value.
+func isTrue(value string) bool {
+	trueValues := []string{"1", "t", "true", "T", "True", "TRUE"}
+
+	return contains(trueValues, value)
+}
+
+// contains checks if a slice contains a value.
+func contains(slice []string, value string) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+
+	return false
 }
 
 // BoolWithError retrieves the value of the environment variable named by the key
@@ -103,19 +137,36 @@ func Int(name string) int {
 }
 
 // IntWithDefault retrieves the value of the environment variable named by the key.
-// If the variable is not present, it returns the provided default value.
-func IntWithDefault(name string, defaultValue int) int {
+// If the variable is not present or cannot be converted, it returns the provided default value.
+// The defaultValue can be an int or a string containing a valid integer.
+func IntWithDefault(name string, defaultValue any) int {
 	value := os.Getenv(name)
 	if value == "" {
-		return defaultValue
+		return parseDefaultInt(defaultValue)
 	}
 
 	i, err := strconv.Atoi(value)
 	if err != nil {
-		return 0
+		return parseDefaultInt(defaultValue)
 	}
 
 	return i
+}
+
+func parseDefaultInt(defaultValue any) int {
+	switch v := defaultValue.(type) {
+	case int:
+		return v
+	case string:
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return 0
+		}
+
+		return i
+	default:
+		return 0
+	}
 }
 
 // IntWithError retrieves the value of the environment variable named by the key.
@@ -133,4 +184,71 @@ func IntWithError(name string) (int, error) {
 	}
 
 	return i, nil
+}
+
+// Duration retrieves the value of the environment variable named by the key as a time.Duration.
+// If the variable is not present or cannot be parsed, it returns 0.
+func Duration(name string) time.Duration {
+	value := os.Getenv(name)
+	if value == "" {
+		return 0
+	}
+
+	d, err := time.ParseDuration(value)
+	if err != nil {
+		return 0
+	}
+
+	return d
+}
+
+// DurationWithDefault retrieves the value of the environment variable named by the key as a time.Duration.
+// The defaultValue can be either a string (e.g., "5s") or a time.Duration. If it's a string,
+// it will be parsed using time.ParseDuration. If the variable is not present or cannot be parsed,
+// it returns the default value.
+func DurationWithDefault(name string, defaultValue any) time.Duration {
+	value := os.Getenv(name)
+	if value == "" {
+		return parseDefaultDuration(defaultValue)
+	}
+
+	d, err := time.ParseDuration(value)
+	if err != nil {
+		return parseDefaultDuration(defaultValue)
+	}
+
+	return d
+}
+
+func parseDefaultDuration(defaultValue any) time.Duration {
+	switch v := defaultValue.(type) {
+	case time.Duration:
+		return v
+	case string:
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return 0
+		}
+
+		return d
+	default:
+		return 0
+	}
+}
+
+// DurationWithError retrieves the value of the environment variable named by the key as a time.Duration.
+// If the variable is not present, it returns 0 and an ErrEnvironmentVariableIsNotSet error.
+// If the variable's value cannot be parsed, it returns 0 and an ErrInvalidValue error.
+func DurationWithError(name string) (time.Duration, error) {
+	value := os.Getenv(name)
+	if value == "" {
+		return 0, fmt.Errorf("%s %w", name, ErrEnvironmentVariableIsNotSet)
+	}
+
+	d, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s %w", name, ErrInvalidValue)
+	}
+
+	return d, nil
 }

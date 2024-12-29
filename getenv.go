@@ -3,6 +3,7 @@ package getenv
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"slices"
 	"strconv"
@@ -251,4 +252,29 @@ func DurationWithError(name string) (time.Duration, error) {
 	}
 
 	return d, nil
+}
+
+// Addr retrieves the value of the environment variable named by the key.
+// If the environment variable is not set, it validates the provided default value.
+// If validation fails, it returns an empty string and an error.
+// Required value must be a valid network address.
+func Addr(name string, defaultValue string) (string, error) {
+	value := os.Getenv(name)
+	if value == "" {
+		value = defaultValue
+	}
+
+	if err := parseNetworkAddress(value); err != nil {
+		return "", fmt.Errorf("%s %w", value, ErrInvalidValue)
+	}
+
+	return value, nil
+}
+
+func parseNetworkAddress(addr string) error {
+	if _, err := net.ResolveTCPAddr("tcp", addr); err != nil {
+		return fmt.Errorf("%s %w", addr, ErrInvalidValue)
+	}
+
+	return nil
 }

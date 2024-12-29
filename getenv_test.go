@@ -637,3 +637,60 @@ func TestDurationWithError(t *testing.T) {
 		})
 	}
 }
+
+func TestAddr(t *testing.T) {
+	os.Setenv("TEST_ADDR_VALID", "127.0.0.1:8080")
+	os.Setenv("TEST_ADDR_INVALID", "invalid-addr")
+	os.Unsetenv("TEST_ADDR_NON_EXISTENT")
+
+	defer func() {
+		os.Unsetenv("TEST_ADDR_VALID")
+		os.Unsetenv("TEST_ADDR_INVALID")
+	}()
+
+	testcases := []struct {
+		name         string
+		envName      string
+		defaultValue string
+		expected     string
+		expectedErr  error
+	}{
+		{"valid environment variable", "TEST_ADDR_VALID", "192.168.1.1:9090", "127.0.0.1:8080", nil},
+		{"invalid environment variable", "TEST_ADDR_INVALID", "192.168.1.1:9090", "", getenv.ErrInvalidValue},
+		{
+			"non-existent variable with valid default",
+			"TEST_ADDR_NON_EXISTENT",
+			"192.168.1.1:9090",
+			"192.168.1.1:9090",
+			nil,
+		},
+		{
+			"non-existent variable with valid default",
+			"TEST_ADDR_NON_EXISTENT",
+			":9002",
+			":9002",
+			nil,
+		},
+		{
+			"non-existent variable with invalid default",
+			"TEST_ADDR_NON_EXISTENT",
+			"invalid-addr",
+			"",
+			getenv.ErrInvalidValue,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			addr, err := getenv.Addr(tc.envName, tc.defaultValue)
+
+			if addr != tc.expected {
+				t.Errorf("want: %s, got: %s", tc.expected, addr)
+			}
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("want error: %v, got: %v", tc.expectedErr, err)
+			}
+		})
+	}
+}

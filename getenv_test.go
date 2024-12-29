@@ -1,6 +1,7 @@
 package getenv_test
 
 import (
+	"errors"
 	"os"
 	"testing"
 
@@ -49,7 +50,83 @@ func TestString(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			if val := getenv.String(tc.envName); val != tc.expected {
-				t.Errorf("want: %s, got: %s", val, tc.expected)
+				t.Errorf("want: %s, got: %s", tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestStringWithDefault(t *testing.T) {
+	os.Setenv("TEST_STRING_FOO", "foo")
+	os.Unsetenv("TEST_STRING_NON_EXISTENT")
+
+	defer func() { os.Unsetenv("TEST_STRING_FOO") }()
+
+	testcases := []struct {
+		name         string
+		envName      string
+		defaultValue string
+		expected     string
+	}{
+		{
+			name:         "get TEST_STRING_NON_EXISTENT with default value",
+			envName:      "TEST_STRING_NON_EXISTENT",
+			defaultValue: "None",
+			expected:     "None",
+		},
+		{
+			name:         "get TEST_STRING_FOO with default value",
+			envName:      "TEST_STRING_FOO",
+			defaultValue: "Baz",
+			expected:     "foo",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if val := getenv.StringWithDefault(tc.envName, tc.defaultValue); val != tc.expected {
+				t.Errorf("want: %s, got: %s", tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestStringWithError(t *testing.T) {
+	os.Setenv("TEST_STRING_FOO", "foo")
+	os.Unsetenv("TEST_STRING_NON_EXISTENT")
+
+	defer func() { os.Unsetenv("TEST_STRING_FOO") }()
+
+	testcases := []struct {
+		name          string
+		envName       string
+		expectedValue string
+		expectedError error
+	}{
+		{
+			name:          "get TEST_STRING_NON_EXISTENT with error",
+			envName:       "TEST_STRING_NON_EXISTENT",
+			expectedValue: "",
+			expectedError: getenv.ErrEnvironmentVariableIsNotSet,
+		},
+		{
+			name:          "get TEST_STRING_FOO with no error",
+			envName:       "TEST_STRING_FOO",
+			expectedValue: "foo",
+			expectedError: nil,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			val, err := getenv.StringWithError(tc.envName)
+
+			if val != tc.expectedValue {
+				t.Errorf("want: %s, got: %s", tc.expectedValue, val)
+			}
+
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("want: %v, got: %v", tc.expectedError, err)
 			}
 		})
 	}

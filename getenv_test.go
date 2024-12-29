@@ -321,3 +321,159 @@ func TestBoolWithError(t *testing.T) {
 		})
 	}
 }
+
+func TestInt(t *testing.T) {
+	setEnvVars := map[string]string{
+		"TEST_INT_POSITIVE": "123",
+		"TEST_INT_NEGATIVE": "-456",
+		"TEST_INT_ZERO":     "0",
+		"TEST_INT_INVALID":  "invalid",
+	}
+
+	for k, v := range setEnvVars {
+		os.Setenv(k, v)
+	}
+	os.Unsetenv("TEST_INT_NON_EXISTENT")
+
+	defer func() {
+		for k := range setEnvVars {
+			os.Unsetenv(k)
+		}
+	}()
+
+	testcases := []struct {
+		name     string
+		envName  string
+		expected int
+	}{
+		{
+			name:     "get positive integer",
+			envName:  "TEST_INT_POSITIVE",
+			expected: 123,
+		},
+		{
+			name:     "get negative integer",
+			envName:  "TEST_INT_NEGATIVE",
+			expected: -456,
+		},
+		{
+			name:     "get zero value",
+			envName:  "TEST_INT_ZERO",
+			expected: 0,
+		},
+		{
+			name:     "get invalid integer",
+			envName:  "TEST_INT_INVALID",
+			expected: 0,
+		},
+		{
+			name:     "get non-existent integer",
+			envName:  "TEST_INT_NON_EXISTENT",
+			expected: 0,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if val := getenv.Int(tc.envName); val != tc.expected {
+				t.Errorf("want: %d, got: %d", tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestIntWithDefault(t *testing.T) {
+	os.Setenv("TEST_INT_POSITIVE", "123")
+	os.Setenv("TEST_INT_INVALID", "invalid")
+	os.Unsetenv("TEST_INT_NON_EXISTENT")
+
+	defer func() {
+		os.Unsetenv("TEST_INT_POSITIVE")
+		os.Unsetenv("TEST_INT_INVALID")
+	}()
+
+	testcases := []struct {
+		name         string
+		envName      string
+		defaultValue int
+		expected     int
+	}{
+		{
+			name:         "get valid integer with default",
+			envName:      "TEST_INT_POSITIVE",
+			defaultValue: 999,
+			expected:     123,
+		},
+		{
+			name:         "get invalid integer with default",
+			envName:      "TEST_INT_INVALID",
+			defaultValue: 999,
+			expected:     0,
+		},
+		{
+			name:         "get non-existent integer with default",
+			envName:      "TEST_INT_NON_EXISTENT",
+			defaultValue: 999,
+			expected:     999,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if val := getenv.IntWithDefault(tc.envName, tc.defaultValue); val != tc.expected {
+				t.Errorf("want: %d, got: %d", tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestIntWithError(t *testing.T) {
+	os.Setenv("TEST_INT_POSITIVE", "123")
+	os.Setenv("TEST_INT_INVALID", "invalid")
+	os.Unsetenv("TEST_INT_NON_EXISTENT")
+
+	defer func() {
+		os.Unsetenv("TEST_INT_POSITIVE")
+		os.Unsetenv("TEST_INT_INVALID")
+	}()
+
+	testcases := []struct {
+		name          string
+		envName       string
+		expectedValue int
+		expectedError error
+	}{
+		{
+			name:          "get valid integer",
+			envName:       "TEST_INT_POSITIVE",
+			expectedValue: 123,
+			expectedError: nil,
+		},
+		{
+			name:          "get invalid integer",
+			envName:       "TEST_INT_INVALID",
+			expectedValue: 0,
+			expectedError: getenv.ErrInvalidValue,
+		},
+		{
+			name:          "get non-existent integer",
+			envName:       "TEST_INT_NON_EXISTENT",
+			expectedValue: 0,
+			expectedError: getenv.ErrEnvironmentVariableIsNotSet,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			val, err := getenv.IntWithError(tc.envName)
+
+			if val != tc.expectedValue {
+				t.Errorf("want: %d, got: %d", tc.expectedValue, val)
+			}
+
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("want: %v, got: %v", tc.expectedError, err)
+			}
+		})
+	}
+}

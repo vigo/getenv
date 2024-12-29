@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -83,4 +84,53 @@ func BoolWithError(name string) (bool, error) {
 	default:
 		return false, fmt.Errorf("%s %w", name, ErrInvalidValue)
 	}
+}
+
+// Int retrieves the value of the environment variable named by the key.
+// If the variable is not present, it returns an 0, zero value of int.
+func Int(name string) int {
+	value := os.Getenv(name)
+	if value == "" {
+		return 0
+	}
+
+	i, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
+
+	return i
+}
+
+// IntWithDefault retrieves the value of the environment variable named by the key.
+// If the variable is not present, it returns the provided default value.
+func IntWithDefault(name string, defaultValue int) int {
+	value := os.Getenv(name)
+	if value == "" {
+		return defaultValue
+	}
+
+	i, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
+
+	return i
+}
+
+// IntWithError retrieves the value of the environment variable named by the key.
+// If the variable is not present, it returns 0 and no error.
+// If the variable's value cannot be converted to an integer, it returns an error.
+func IntWithError(name string) (int, error) {
+	value := os.Getenv(name)
+	if value == "" {
+		return 0, fmt.Errorf("%s %w", name, ErrEnvironmentVariableIsNotSet)
+	}
+
+	i, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s %w", name, ErrInvalidValue)
+	}
+
+	return i, nil
 }

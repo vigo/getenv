@@ -1,78 +1,62 @@
 package getenv
 
 import (
-	"errors"
 	"fmt"
-	"net"
 	"os"
-	"slices"
-	"strconv"
 	"strings"
-	"time"
 )
 
-// sentinel errors.
-var (
-	ErrEnvironmentVariableIsNotSet = errors.New("environment variable is not set")
-	ErrInvalidValue                = errors.New("invalid value")
-)
+// StringVerifyFunc is a verify function type for String.
+type StringVerifyFunc func(string) error
 
-// String retrieves the value of the environment variable named by the key.
-// If the variable is not present, it returns an empty string.
-func String(name string) string {
-	return os.Getenv(name)
-}
-
-// StringWithDefault retrieves the value of the environment variable named by the key.
-// If the variable is not present, it returns the provided default value.
-func StringWithDefault(name, defaultValue string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		return defaultValue
+// String retrieves the value of the environment variable identified by the given key.
+// If the environment variable is not set, it falls back to the provided default value.
+// Optionally, a custom validation function (vf) of type StringVerifyFunc can be supplied
+// to perform additional checks on the resulting value.
+// If the validation fails, an error is returned.
+func String(name, defaultValue string, vf StringVerifyFunc) (string, error) {
+	val := os.Getenv(name)
+	if val == "" {
+		val = defaultValue
 	}
 
-	return value
-}
-
-// StringWithError retrieves the value of the environment variable named by the key.
-// If the variable is not present, it returns an error.
-func StringWithError(name string) (string, error) {
-	value := os.Getenv(name)
-	if value == "" {
-		return "", fmt.Errorf("%s %w", name, ErrEnvironmentVariableIsNotSet)
+	if vf != nil {
+		if err := vf(val); err != nil {
+			return "", fmt.Errorf("verify error: %w", err)
+		}
 	}
 
-	return value, nil
+	return val, nil
 }
 
-// Bool retrieves the value of the environment variable named by the key
-// and converts it to a boolean. It returns false if the variable is not set
-// or cannot be converted to a boolean. true values are:
-// "1", "t", "true", "T", "True", "TRUE".
-func Bool(name string) bool {
-	value := strings.ToLower(os.Getenv(name))
-	trueValues := []string{"1", "t", "true", "T", "True", "TRUE"}
+// BoolVerifyFunc is a verify function type for Bool.
+type BoolVerifyFunc func(bool) error
 
-	return slices.Contains(trueValues, value)
-}
+// Bool retrieves the value of the environment variable identified by the given
+// name as a boolean. If the environment variable is not set, it falls back to
+// the provided defaultValue. Optionally, a custom validation function (vf) of
+// type BoolVerifyFunc can be supplied to perform additional checks on the
+// resulting boolean value. If the validation fails, an error is returned.
+func Bool(name string, defaultValue any, vf BoolVerifyFunc) (bool, error) {
+	val := os.Getenv(name)
+	if val == "" {
+		defVal := parseBool(defaultValue)
+		if vf != nil {
+			if err := vf(defVal); err != nil {
+				return false, fmt.Errorf("verify error: %w", err)
+			}
+		}
 
-// BoolWithDefault retrieves the value of the environment variable named by the key
-// and converts it to a boolean. If the variable is not present or cannot be converted,
-// it returns the provided default value, which can be either a bool or a string
-// representing a boolean "1", "t", "true", "T", "True", "TRUE".
-func BoolWithDefault(name string, defaultValue any) bool {
-	value := os.Getenv(name)
-	if value == "" {
-		return parseDefaultBool(defaultValue)
+		return defVal, nil
 	}
 
-	value = strings.ToLower(value)
+	val = strings.ToLower(val)
 
-	return isTrue(value)
+	return isTrue(val), nil
 }
 
-func parseDefaultBool(defaultValue any) bool {
-	switch v := defaultValue.(type) {
+func parseBool(val any) bool {
+	switch v := val.(type) {
 	case bool:
 		return v
 	case string:
@@ -82,14 +66,12 @@ func parseDefaultBool(defaultValue any) bool {
 	}
 }
 
-// isTrue checks if a string represents a true value.
 func isTrue(value string) bool {
 	trueValues := []string{"1", "t", "true", "T", "True", "TRUE"}
 
 	return contains(trueValues, value)
 }
 
-// contains checks if a slice contains a value.
 func contains(slice []string, value string) bool {
 	for _, v := range slice {
 		if v == value {
@@ -98,183 +80,4 @@ func contains(slice []string, value string) bool {
 	}
 
 	return false
-}
-
-// BoolWithError retrieves the value of the environment variable named by the key
-// and converts it to a boolean. If the variable is not present, it returns an error.
-// Valid true values are "1", "t", "T", "true", "TRUE", "True"
-// Valid false values are "0", "f", "F", "false", "FALSE", "False"
-// .
-func BoolWithError(name string) (bool, error) {
-	value := os.Getenv(name)
-	if value == "" {
-		return false, fmt.Errorf("%s %w", name, ErrEnvironmentVariableIsNotSet)
-	}
-
-	switch strings.ToLower(value) {
-	case "1", "t", "true":
-		return true, nil
-	case "0", "f", "false":
-		return false, nil
-	default:
-		return false, fmt.Errorf("%s %w", name, ErrInvalidValue)
-	}
-}
-
-// Int retrieves the value of the environment variable named by the key.
-// If the variable is not present, it returns an 0, zero value of int.
-func Int(name string) int {
-	value := os.Getenv(name)
-	if value == "" {
-		return 0
-	}
-
-	i, err := strconv.Atoi(value)
-	if err != nil {
-		return 0
-	}
-
-	return i
-}
-
-// IntWithDefault retrieves the value of the environment variable named by the key.
-// If the variable is not present or cannot be converted, it returns the provided default value.
-// The defaultValue can be an int or a string containing a valid integer.
-func IntWithDefault(name string, defaultValue any) int {
-	value := os.Getenv(name)
-	if value == "" {
-		return parseDefaultInt(defaultValue)
-	}
-
-	i, err := strconv.Atoi(value)
-	if err != nil {
-		return parseDefaultInt(defaultValue)
-	}
-
-	return i
-}
-
-func parseDefaultInt(defaultValue any) int {
-	switch v := defaultValue.(type) {
-	case int:
-		return v
-	case string:
-		i, err := strconv.Atoi(v)
-		if err != nil {
-			return 0
-		}
-
-		return i
-	default:
-		return 0
-	}
-}
-
-// IntWithError retrieves the value of the environment variable named by the key.
-// If the variable is not present, it returns 0 and no error.
-// If the variable's value cannot be converted to an integer, it returns an error.
-func IntWithError(name string) (int, error) {
-	value := os.Getenv(name)
-	if value == "" {
-		return 0, fmt.Errorf("%s %w", name, ErrEnvironmentVariableIsNotSet)
-	}
-
-	i, err := strconv.Atoi(value)
-	if err != nil {
-		return 0, fmt.Errorf("%s %w", name, ErrInvalidValue)
-	}
-
-	return i, nil
-}
-
-// Duration retrieves the value of the environment variable named by the key as a time.Duration.
-// If the variable is not present or cannot be parsed, it returns 0.
-func Duration(name string) time.Duration {
-	value := os.Getenv(name)
-	if value == "" {
-		return 0
-	}
-
-	d, err := time.ParseDuration(value)
-	if err != nil {
-		return 0
-	}
-
-	return d
-}
-
-// DurationWithDefault retrieves the value of the environment variable named by the key as a time.Duration.
-// The defaultValue can be either a string (e.g., "5s") or a time.Duration. If it's a string,
-// it will be parsed using time.ParseDuration. If the variable is not present or cannot be parsed,
-// it returns the default value.
-func DurationWithDefault(name string, defaultValue any) time.Duration {
-	value := os.Getenv(name)
-	if value == "" {
-		return parseDefaultDuration(defaultValue)
-	}
-
-	d, err := time.ParseDuration(value)
-	if err != nil {
-		return parseDefaultDuration(defaultValue)
-	}
-
-	return d
-}
-
-func parseDefaultDuration(defaultValue any) time.Duration {
-	switch v := defaultValue.(type) {
-	case time.Duration:
-		return v
-	case string:
-		d, err := time.ParseDuration(v)
-		if err != nil {
-			return 0
-		}
-
-		return d
-	default:
-		return 0
-	}
-}
-
-// DurationWithError retrieves the value of the environment variable named by the key as a time.Duration.
-// If the variable is not present, it returns 0 and an ErrEnvironmentVariableIsNotSet error.
-// If the variable's value cannot be parsed, it returns 0 and an ErrInvalidValue error.
-func DurationWithError(name string) (time.Duration, error) {
-	value := os.Getenv(name)
-	if value == "" {
-		return 0, fmt.Errorf("%s %w", name, ErrEnvironmentVariableIsNotSet)
-	}
-
-	d, err := time.ParseDuration(value)
-	if err != nil {
-		return 0, fmt.Errorf("%s %w", name, ErrInvalidValue)
-	}
-
-	return d, nil
-}
-
-// Addr retrieves the value of the environment variable named by the key.
-// If the environment variable is not set, it validates the provided default value.
-// If validation fails, it returns an empty string and an error.
-// Required value must be a valid network address.
-func Addr(name string, defaultValue string) (string, error) {
-	value := os.Getenv(name)
-	if value == "" {
-		value = defaultValue
-	}
-
-	if err := parseNetworkAddress(value); err != nil {
-		return "", fmt.Errorf("%s %w", value, ErrInvalidValue)
-	}
-
-	return value, nil
-}
-
-func parseNetworkAddress(addr string) error {
-	if _, err := net.ResolveTCPAddr("tcp", addr); err != nil {
-		return fmt.Errorf("%s %w", addr, ErrInvalidValue)
-	}
-
-	return nil
 }

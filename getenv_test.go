@@ -2,248 +2,176 @@ package getenv_test
 
 import (
 	"errors"
-	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/vigo/getenv"
 )
 
-var errTestOnly = errors.New("error")
+func TestBool(t *testing.T) {
+	os.Unsetenv("TEST_BOOL_NON_EXISTING_1")
+	os.Unsetenv("TEST_BOOL_NON_EXISTING_2")
 
-func TestString(t *testing.T) {
-	os.Setenv("TEST_STRING_1", "test1")
-	os.Unsetenv("TEST_STRING_NON_EXISTENT")
+	os.Setenv("TEST_BOOL_1", "T")
+	os.Setenv("TEST_BOOL_2", "true")
+	os.Setenv("TEST_BOOL_3", "t")
+	os.Setenv("TEST_BOOL_4", "1")
+	os.Setenv("TEST_BOOL_5", "TRUE")
+	os.Setenv("TEST_BOOL_6", "invalid")
 
-	defer func() { os.Unsetenv("TEST_STRING_1") }()
+	defer func() {
+		os.Unsetenv("TEST_BOOL_1")
+		os.Unsetenv("TEST_BOOL_2")
+		os.Unsetenv("TEST_BOOL_3")
+		os.Unsetenv("TEST_BOOL_4")
+		os.Unsetenv("TEST_BOOL_5")
+		os.Unsetenv("TEST_BOOL_6")
+	}()
 
-	testcases := []struct {
-		testName    string
-		envName     string
-		defaultVal  string
-		verifyFunc  getenv.StringVerifyFunc
-		expectedVal string
-		expectedErr error
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  bool
+		exceptedValue bool
+		expectedErr   error
 	}{
 		{
-			testName:    "non existing var with default",
-			envName:     "TEST_STRING_NON_EXISTENT",
-			defaultVal:  "default",
-			verifyFunc:  nil,
-			expectedVal: "default",
-			expectedErr: nil,
+			testName:      "non existing env-var has default true should have true",
+			envName:       "TEST_BOOL_NON_EXISTING_1",
+			defaultValue:  true,
+			exceptedValue: true,
+			expectedErr:   nil,
 		},
 		{
-			testName:    "existing var with default",
-			envName:     "TEST_STRING_1",
-			defaultVal:  "test-default",
-			verifyFunc:  nil,
-			expectedVal: "test1",
-			expectedErr: nil,
+			testName:      "non existing env-var has default false should have false",
+			envName:       "TEST_BOOL_NON_EXISTING_2",
+			defaultValue:  false,
+			exceptedValue: false,
+			expectedErr:   nil,
 		},
 		{
-			testName:   "existing var with default and verifier, should return an error",
-			envName:    "TEST_STRING_1",
-			defaultVal: "test-default",
-			verifyFunc: func(val string) error {
-				if val == "test1" {
-					return fmt.Errorf("%w", errTestOnly)
-				}
-				return nil
-			},
-			expectedVal: "",
-			expectedErr: errTestOnly,
+			testName:      "existing env-var 'T' has default false should have true",
+			envName:       "TEST_BOOL_1",
+			defaultValue:  false,
+			exceptedValue: true,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var 'true' has default false should have true",
+			envName:       "TEST_BOOL_2",
+			defaultValue:  false,
+			exceptedValue: true,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var 't' has default false should have true",
+			envName:       "TEST_BOOL_3",
+			defaultValue:  false,
+			exceptedValue: true,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var '1' has default false should have true",
+			envName:       "TEST_BOOL_4",
+			defaultValue:  false,
+			exceptedValue: true,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var 'TRUE' has default false should have true",
+			envName:       "TEST_BOOL_5",
+			defaultValue:  false,
+			exceptedValue: true,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var 'invalid' has default false should have and error",
+			envName:       "TEST_BOOL_6",
+			defaultValue:  false,
+			exceptedValue: false,
+			expectedErr:   strconv.ErrSyntax,
 		},
 	}
 
-	for _, tc := range testcases {
+	for _, tc := range tcs {
 		t.Run(tc.testName, func(t *testing.T) {
-			val, err := getenv.String(tc.envName, tc.defaultVal, tc.verifyFunc)
+			val := getenv.Bool(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
 			if !errors.Is(err, tc.expectedErr) {
-				t.Errorf("want: %v, got: %v", tc.expectedErr, err)
+				t.Errorf("want %v, got: %v", tc.expectedErr, err)
 			}
-			if val != tc.expectedVal {
-				t.Errorf("want: %s, got: %s", tc.expectedVal, val)
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want %t, got: %t", tc.exceptedValue, *val)
+				}
 			}
 		})
 	}
 }
 
-// func ExampleString_non_existing_var_without_error() {
-// 	value, _ := getenv.String("NON_EXISTENT", "default-value", nil)
-// 	fmt.Println(value)
-// 	// Output:
-// 	// default-value
-// }
+func TestInt(t *testing.T) {
+	os.Unsetenv("TEST_INT_NON_EXISTING_1")
 
-// func TestBool(t *testing.T) {
-// 	os.Setenv("TEST_BOOL_1", "TRUE")
-// 	os.Setenv("TEST_BOOL_2", "True")
-// 	os.Setenv("TEST_BOOL_3", "true")
-// 	os.Setenv("TEST_BOOL_4", "T")
-// 	os.Setenv("TEST_BOOL_5", "t")
-//
-// 	os.Unsetenv("TEST_BOOL_NON_EXISTENT")
-// 	defer func() {
-// 		os.Unsetenv("TEST_BOOL_1")
-// 		os.Unsetenv("TEST_BOOL_2")
-// 		os.Unsetenv("TEST_BOOL_3")
-// 		os.Unsetenv("TEST_BOOL_4")
-// 		os.Unsetenv("TEST_BOOL_5")
-// 	}()
-//
-// 	testcases := []struct {
-// 		testName    string
-// 		envName     string
-// 		defaultVal  any
-// 		verifyFunc  getenv.BoolVerifyFunc
-// 		expectedVal bool
-// 		expectedErr error
-// 	}{
-// 		{
-// 			testName:    "test TEST_BOOL_1 with TRUE value",
-// 			envName:     "TEST_BOOL_1",
-// 			defaultVal:  "False",
-// 			verifyFunc:  nil,
-// 			expectedVal: true,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test TEST_BOOL_2 with True value",
-// 			envName:     "TEST_BOOL_2",
-// 			defaultVal:  "",
-// 			verifyFunc:  nil,
-// 			expectedVal: true,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test TEST_BOOL_3 with true value",
-// 			envName:     "TEST_BOOL_3",
-// 			defaultVal:  nil,
-// 			verifyFunc:  nil,
-// 			expectedVal: true,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test TEST_BOOL_4 with T value",
-// 			envName:     "TEST_BOOL_4",
-// 			defaultVal:  nil,
-// 			verifyFunc:  nil,
-// 			expectedVal: true,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test TEST_BOOL_t with t value",
-// 			envName:     "TEST_BOOL_5",
-// 			defaultVal:  nil,
-// 			verifyFunc:  nil,
-// 			expectedVal: true,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test TEST_BOOL_NON_EXISTENT with default F value",
-// 			envName:     "TEST_BOOL_NON_EXISTENT",
-// 			defaultVal:  "F",
-// 			verifyFunc:  nil,
-// 			expectedVal: false,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test TEST_BOOL_NON_EXISTENT with default True value",
-// 			envName:     "TEST_BOOL_NON_EXISTENT",
-// 			defaultVal:  "True",
-// 			verifyFunc:  nil,
-// 			expectedVal: true,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:   "test TEST_BOOL_NON_EXISTENT with default errorious value",
-// 			envName:    "TEST_BOOL_NON_EXISTENT",
-// 			defaultVal: "invalid",
-// 			verifyFunc: func(val bool) error {
-// 				if !val {
-// 					return fmt.Errorf("%w", errTestOnly)
-// 				}
-// 				return nil
-// 			},
-// 			expectedVal: false,
-// 			expectedErr: errTestOnly,
-// 		},
-// 		{
-// 			testName:    "test non existing env-var with default bool value",
-// 			envName:     "TEST_BOOL_NON_EXISTENT",
-// 			defaultVal:  true,
-// 			verifyFunc:  nil,
-// 			expectedVal: true,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test non existing env-var with default int value",
-// 			envName:     "TEST_BOOL_NON_EXISTENT",
-// 			defaultVal:  999,
-// 			verifyFunc:  nil,
-// 			expectedVal: false,
-// 			expectedErr: nil,
-// 		},
-// 	}
-//
-// 	for _, tc := range testcases {
-// 		t.Run(tc.testName, func(t *testing.T) {
-// 			val, err := getenv.Bool(tc.envName, tc.defaultVal, tc.verifyFunc)
-// 			if !errors.Is(err, tc.expectedErr) {
-// 				t.Errorf("want: %v, got: %v", tc.expectedErr, err)
-// 			}
-// 			if val != tc.expectedVal {
-// 				t.Errorf("want: %t, got: %t", tc.expectedVal, val)
-// 			}
-// 		})
-// 	}
-// }
+	os.Setenv("TEST_INT_1", "8000")
+	os.Setenv("TEST_INT_2", "invalid")
+	os.Setenv("TEST_INT_3", "9223372036854775808")
 
-// func TestInt(t *testing.T) {
-// 	os.Setenv("TEST_INT_1", "1")
-// 	os.Setenv("TEST_INT_2", "invalid")
-// 	os.Unsetenv("TEST_INT_NON_EXISTENT")
-//
-// 	defer func() {
-// 		os.Unsetenv("TEST_INT_1")
-// 	}()
-//
-// 	testcases := []struct {
-// 		testName    string
-// 		envName     string
-// 		defaultVal  any
-// 		verifyFunc  getenv.IntVerifyFunc
-// 		expectedVal int
-// 		expectedErr error
-// 	}{
-// 		{
-// 			testName:    "test TEST_INT_1 with '1' value",
-// 			envName:     "TEST_INT_1",
-// 			defaultVal:  nil,
-// 			verifyFunc:  nil,
-// 			expectedVal: 1,
-// 			expectedErr: nil,
-// 		},
-// 		{
-// 			testName:    "test TEST_INT_2 with 'invalid' value",
-// 			envName:     "TEST_INT_2",
-// 			defaultVal:  nil,
-// 			verifyFunc:  nil,
-// 			expectedVal: 0,
-// 			expectedErr: nil,
-// 		},
-// 	}
-//
-// 	for _, tc := range testcases {
-// 		t.Run(tc.testName, func(t *testing.T) {
-// 			val, err := getenv.Int(tc.envName, tc.defaultVal, tc.verifyFunc)
-// 			if !errors.Is(err, tc.expectedErr) {
-// 				t.Errorf("want: %v, got: %v", tc.expectedErr, err)
-// 			}
-// 			if val != tc.expectedVal {
-// 				t.Errorf("want: %d, got: %d", tc.expectedVal, val)
-// 			}
-// 		})
-// 	}
-// }
+	defer func() {
+		os.Unsetenv("TEST_INT_1")
+		os.Unsetenv("TEST_INT_2")
+		os.Unsetenv("TEST_INT_3")
+	}()
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  int
+		exceptedValue int
+		expectedErr   error
+	}{
+		{
+			testName:      "non existing env-var has default 999 should have 999",
+			envName:       "TEST_INT_NON_EXISTING_1",
+			defaultValue:  999,
+			exceptedValue: 999,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has 8000 default 4000 should have 8000",
+			envName:       "TEST_INT_1",
+			defaultValue:  4000,
+			exceptedValue: 8000,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has 'invalid' default 4000 should have an error",
+			envName:       "TEST_INT_2",
+			defaultValue:  4000,
+			exceptedValue: 0,
+			expectedErr:   strconv.ErrSyntax,
+		},
+		{
+			testName:      "existing env-var has '9223372036854775808' default 4000 should have an error",
+			envName:       "TEST_INT_3",
+			defaultValue:  4000,
+			exceptedValue: 0,
+			expectedErr:   strconv.ErrRange,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.Int(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+			}
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want %d, got: %d", tc.exceptedValue, *val)
+				}
+			}
+		})
+	}
+}

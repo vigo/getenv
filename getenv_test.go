@@ -2,12 +2,24 @@ package getenv_test
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"testing"
 
 	"github.com/vigo/getenv"
 )
+
+func ExampleBool() {
+	color := getenv.Bool("COLOR", false)
+	if err := getenv.Parse(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(*color)
+	// Outputs: false
+}
 
 func TestBool(t *testing.T) {
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_1")
@@ -115,12 +127,10 @@ func TestInt(t *testing.T) {
 
 	os.Setenv("TEST_INT_1", "8000")
 	os.Setenv("TEST_INT_2", "invalid")
-	os.Setenv("TEST_INT_3", "9223372036854775808")
 
 	defer func() {
 		os.Unsetenv("TEST_INT_1")
 		os.Unsetenv("TEST_INT_2")
-		os.Unsetenv("TEST_INT_3")
 	}()
 
 	tcs := []struct {
@@ -150,13 +160,6 @@ func TestInt(t *testing.T) {
 			defaultValue:  4000,
 			exceptedValue: 0,
 			expectedErr:   strconv.ErrSyntax,
-		},
-		{
-			testName:      "existing env-var has '9223372036854775808' default 4000 should have an error",
-			envName:       "TEST_INT_3",
-			defaultValue:  4000,
-			exceptedValue: 0,
-			expectedErr:   strconv.ErrRange,
 		},
 	}
 

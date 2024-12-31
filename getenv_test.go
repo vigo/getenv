@@ -21,6 +21,36 @@ func ExampleBool() {
 	// Outputs: false
 }
 
+func ExampleInt() {
+	port := getenv.Int("PORT", 8000)
+	if err := getenv.Parse(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(*port)
+	// Outputs: 8000
+}
+
+func ExampleInt64() {
+	long := getenv.Int64("LONG", 9223372036854775806)
+	if err := getenv.Parse(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(*long)
+	// Outputs: 9223372036854775806
+}
+
+func ExampleString() {
+	hmacHeader := getenv.String("HMAC_HEADER", "X-Foo-Signature")
+	if err := getenv.Parse(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(*hmacHeader)
+	// Outputs: X-Foo-Signature
+}
+
 func TestBool(t *testing.T) {
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_1")
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_2")
@@ -118,6 +148,7 @@ func TestBool(t *testing.T) {
 					t.Errorf("want %t, got: %t", tc.exceptedValue, *val)
 				}
 			}
+			getenv.Reset()
 		})
 	}
 }
@@ -175,6 +206,75 @@ func TestInt(t *testing.T) {
 					t.Errorf("want %d, got: %d", tc.exceptedValue, *val)
 				}
 			}
+			getenv.Reset()
+		})
+	}
+}
+
+func TestInt64(t *testing.T) {
+	os.Unsetenv("TEST_INT64_NON_EXISTING_1")
+
+	os.Setenv("TEST_INT64_1", "-123456789012")
+	os.Setenv("TEST_INT64_2", "abc")
+	os.Setenv("TEST_INT64_3", "9223372036854775808123")
+
+	defer func() {
+		os.Unsetenv("TEST_INT64_1")
+		os.Unsetenv("TEST_INT64_2")
+		os.Unsetenv("TEST_INT64_3")
+	}()
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  int64
+		exceptedValue int64
+		expectedErr   error
+	}{
+		{
+			testName:      "non existing env-var has default '1' should have '1'",
+			envName:       "TEST_INT64_NON_EXISTING_1",
+			defaultValue:  int64(1),
+			exceptedValue: int64(1),
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has '-123456789012' default '1' should have '-123456789012'",
+			envName:       "TEST_INT64_1",
+			defaultValue:  int64(1),
+			exceptedValue: int64(-123456789012),
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has 'abc' default '0' should have an error",
+			envName:       "TEST_INT64_2",
+			defaultValue:  0,
+			exceptedValue: 0,
+			expectedErr:   strconv.ErrSyntax,
+		},
+		{
+			testName:      "existing env-var has '9223372036854775808123' default '0' should have an error",
+			envName:       "TEST_INT64_3",
+			defaultValue:  0,
+			exceptedValue: 0,
+			expectedErr:   strconv.ErrRange,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.Int64(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+			}
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want %d, got: %d", tc.exceptedValue, *val)
+				}
+			}
+			getenv.Reset()
 		})
 	}
 }
@@ -232,6 +332,7 @@ func TestString(t *testing.T) {
 					t.Errorf("want %s, got: %s", tc.exceptedValue, *val)
 				}
 			}
+			getenv.Reset()
 		})
 	}
 }

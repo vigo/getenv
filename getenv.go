@@ -24,6 +24,7 @@ var (
 	_ Value = (*boolValue)(nil)
 	_ Value = (*intValue)(nil)
 	_ Value = (*stringValue)(nil)
+	_ Value = (*int64Value)(nil)
 )
 
 // EnvironmentVariable represents environment variable.
@@ -65,6 +66,14 @@ func (e *EnvironmentVariableSet) Int(name string, value int) *int {
 	return p
 }
 
+// Int64 creates new int64.
+func (e *EnvironmentVariableSet) Int64(name string, value int64) *int64 {
+	p := new(int64)
+	e.Int64Var(p, name, value)
+
+	return p
+}
+
 // String creates new string.
 func (e *EnvironmentVariableSet) String(name string, value string) *string {
 	p := new(string)
@@ -81,6 +90,11 @@ func (e *EnvironmentVariableSet) BoolVar(p *bool, name string, value bool) {
 // IntVar creates new int variable.
 func (e *EnvironmentVariableSet) IntVar(p *int, name string, value int) {
 	e.Var(newIntValue(value, p), name)
+}
+
+// Int64Var creates new int64 variable.
+func (e *EnvironmentVariableSet) Int64Var(p *int64, name string, value int64) {
+	e.Var(newInt64Value(value, p), name)
 }
 
 // StringVar creates new string variable.
@@ -106,6 +120,13 @@ func (e *EnvironmentVariableSet) Parse() error {
 	return nil
 }
 
+// Reset resets variables storage.
+func (e *EnvironmentVariableSet) Reset() {
+	if e.variables != nil {
+		e.variables = make(map[string]*EnvironmentVariable)
+	}
+}
+
 func newEnvironmentVariableSet() *EnvironmentVariableSet {
 	return &EnvironmentVariableSet{}
 }
@@ -119,21 +140,7 @@ func Parse() error {
 	return nil
 }
 
-// // Set sets the variable's vallue.
-// func (e *EnvironmentVariableSet) Set(name, value string) error {
-// 	envVar, ok := e.values[name]
-// 	if !ok {
-// 		return fmt.Errorf("%s %w", name, ErrEnvironmentVariableNotFound)
-// 	}
-//
-// 	if err := envVar.Value.Set(value); err != nil {
-// 		return fmt.Errorf("can not set the value %w", err)
-// 	}
-//
-// 	if e.values == nil {
-// 		e.values = make(map[string]*EnvironmentVariable)
-// 	}
-// 	e.values[name] = envVar
-//
-// 	return nil
-// }
+// Reset resets/clears variables storage.
+func Reset() {
+	environmentVariableSetInstance.Reset()
+}

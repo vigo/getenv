@@ -9,6 +9,7 @@ import (
 // sentinel errors.
 var (
 	ErrEnvironmentVariableNotFound = errors.New("not found")
+	ErrEnvironmentVariableIsEmpty  = errors.New("is empty")
 )
 
 var environmentVariableSetInstance = newEnvironmentVariableSet() //nolint:gochecknoglobals
@@ -16,11 +17,13 @@ var environmentVariableSetInstance = newEnvironmentVariableSet() //nolint:gochec
 // Value defines environment variable's value behaviours.
 type Value interface {
 	Set(s string) error
+	Get() any
 }
 
 var (
 	_ Value = (*boolValue)(nil)
 	_ Value = (*intValue)(nil)
+	_ Value = (*stringValue)(nil)
 )
 
 // EnvironmentVariable represents environment variable.
@@ -54,11 +57,6 @@ func (e *EnvironmentVariableSet) Bool(name string, value bool) *bool {
 	return p
 }
 
-// BoolVar creates new bool variable.
-func (e *EnvironmentVariableSet) BoolVar(p *bool, name string, value bool) {
-	e.Var(newBoolValue(value, p), name)
-}
-
 // Int creates new int.
 func (e *EnvironmentVariableSet) Int(name string, value int) *int {
 	p := new(int)
@@ -67,9 +65,27 @@ func (e *EnvironmentVariableSet) Int(name string, value int) *int {
 	return p
 }
 
+// String creates new string.
+func (e *EnvironmentVariableSet) String(name string, value string) *string {
+	p := new(string)
+	e.StringVar(p, name, value)
+
+	return p
+}
+
+// BoolVar creates new bool variable.
+func (e *EnvironmentVariableSet) BoolVar(p *bool, name string, value bool) {
+	e.Var(newBoolValue(value, p), name)
+}
+
 // IntVar creates new int variable.
 func (e *EnvironmentVariableSet) IntVar(p *int, name string, value int) {
 	e.Var(newIntValue(value, p), name)
+}
+
+// StringVar creates new string variable.
+func (e *EnvironmentVariableSet) StringVar(p *string, name string, value string) {
+	e.Var(newStringValue(value, p), name)
 }
 
 // Parse fetches environment variable, creates required Value, sets and stores.
@@ -80,6 +96,10 @@ func (e *EnvironmentVariableSet) Parse() error {
 			if err := envVar.Value.Set(envValue); err != nil {
 				return fmt.Errorf("error setting %s %w", name, err)
 			}
+		}
+
+		if v, ok := envVar.Value.Get().(string); ok && v == "" {
+			return ErrEnvironmentVariableIsEmpty
 		}
 	}
 

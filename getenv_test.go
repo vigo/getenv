@@ -178,3 +178,60 @@ func TestInt(t *testing.T) {
 		})
 	}
 }
+
+func TestString(t *testing.T) {
+	os.Unsetenv("TEST_STRING_NON_EXISTING_1")
+
+	os.Setenv("TEST_STRING_1", "application/json")
+	os.Setenv("TEST_STRING_2", "")
+
+	defer func() {
+		os.Unsetenv("TEST_STRING_1")
+		os.Unsetenv("TEST_STRING_2")
+	}()
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  string
+		exceptedValue string
+		expectedErr   error
+	}{
+		{
+			testName:      "non existing env-var has default 'X-Foo' should have 'X-Foo'",
+			envName:       "TEST_STRING_NON_EXISTING_1",
+			defaultValue:  "X-Foo",
+			exceptedValue: "X-Foo",
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has 'application/json' default 'text/plain' should have 'application/json'",
+			envName:       "TEST_STRING_1",
+			defaultValue:  "text/plain",
+			exceptedValue: "application/json",
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has empty string as default should have an error",
+			envName:       "TEST_STRING_2",
+			defaultValue:  "",
+			exceptedValue: "",
+			expectedErr:   getenv.ErrEnvironmentVariableIsEmpty,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.String(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+			}
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want %s, got: %s", tc.exceptedValue, *val)
+				}
+			}
+		})
+	}
+}

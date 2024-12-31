@@ -23,6 +23,8 @@ func (b *boolValue) Set(s string) error {
 	return nil
 }
 
+func (b *boolValue) Get() any { return bool(*b) }
+
 // Bool sets environment variable and returns the pointer of value.
 func Bool(name string, value bool) *bool {
 	return environmentVariableSetInstance.Bool(name, value)

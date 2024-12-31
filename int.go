@@ -23,6 +23,8 @@ func (i *intValue) Set(s string) error {
 	return nil
 }
 
+func (i *intValue) Get() any { return int(*i) }
+
 // Int sets environment variable and returns the pointer of value.
 func Int(name string, value int) *int {
 	return environmentVariableSetInstance.Int(name, value)

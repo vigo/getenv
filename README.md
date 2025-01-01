@@ -2,6 +2,7 @@
 ![Go](https://img.shields.io/github/go-mod/go-version/vigo/getenv)
 [![Documentation](https://godoc.org/github.com/vigo/getenv?status.svg)](https://pkg.go.dev/github.com/vigo/getenv)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vigo/getenv)](https://goreportcard.com/report/github.com/vigo/getenv)
+[![codecov](https://codecov.io/github/vigo/getenv/graph/badge.svg?token=OHI46PIBLN)](https://codecov.io/github/vigo/getenv)
 ![Powered by Rake](https://img.shields.io/badge/powered_by-rake-blue?logo=ruby)
 
 # getenv

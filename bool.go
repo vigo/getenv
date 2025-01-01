@@ -1,6 +1,7 @@
 package getenv
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -16,7 +17,7 @@ func newBoolValue(val bool, p *bool) *boolValue {
 func (b *boolValue) Set(s string) error {
 	v, err := strconv.ParseBool(s)
 	if err != nil {
-		return fmt.Errorf("bool parse error: %w", err)
+		return errors.Join(ErrInvalid, fmt.Errorf("bool parse error: %w", err))
 	}
 	*b = boolValue(v)
 

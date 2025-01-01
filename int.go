@@ -1,6 +1,7 @@
 package getenv
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -16,7 +17,7 @@ func newIntValue(val int, p *int) *intValue {
 func (i *intValue) Set(s string) error {
 	v, err := strconv.ParseInt(s, 0, strconv.IntSize)
 	if err != nil {
-		return fmt.Errorf("parse int error: %w", err)
+		return errors.Join(ErrInvalid, fmt.Errorf("parse int error: %w", err))
 	}
 	*i = intValue(v)
 

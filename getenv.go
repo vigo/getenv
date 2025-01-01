@@ -11,6 +11,7 @@ import (
 var (
 	ErrEnvironmentVariableNotFound = errors.New("not found")
 	ErrEnvironmentVariableIsEmpty  = errors.New("is empty")
+	ErrInvalid                     = errors.New("invalid")
 )
 
 var environmentVariableSetInstance = newEnvironmentVariableSet() //nolint:gochecknoglobals
@@ -29,6 +30,7 @@ var (
 	_ Value = (*int64Value)(nil)
 	_ Value = (*float64Value)(nil)
 	_ Value = (*durationValue)(nil)
+	_ Value = (*tcpAddrValue)(nil)
 )
 
 // EnvironmentVariable represents environment variable.
@@ -102,6 +104,14 @@ func (e *EnvironmentVariableSet) Duration(name string, value time.Duration) *tim
 	return p
 }
 
+// TCPAddr creates new tcp addr.
+func (e *EnvironmentVariableSet) TCPAddr(name string, value string) *string {
+	p := new(string)
+	e.TCPAddrVar(p, name, value)
+
+	return p
+}
+
 // BoolVar creates new bool variable.
 func (e *EnvironmentVariableSet) BoolVar(p *bool, name string, value bool) {
 	e.Var(newBoolValue(value, p), name)
@@ -132,18 +142,38 @@ func (e *EnvironmentVariableSet) DurationVar(p *time.Duration, name string, valu
 	e.Var(newDurationValue(value, p), name)
 }
 
+// TCPAddrVar creates new string variable for tcp address value.
+func (e *EnvironmentVariableSet) TCPAddrVar(p *string, name string, value string) {
+	e.Var(newTCPAddrValue(value, p), name)
+}
+
 // Parse fetches environment variable, creates required Value, sets and stores.
 func (e *EnvironmentVariableSet) Parse() error {
 	for name, envVar := range e.variables {
 		envValue := os.Getenv(name)
+
+		// setting the env-var value
 		if envValue != "" {
 			if err := envVar.Value.Set(envValue); err != nil {
 				return fmt.Errorf("error setting %s %w", name, err)
 			}
 		}
 
-		if v, ok := envVar.Value.Get().(string); ok && v == "" {
-			return ErrEnvironmentVariableIsEmpty
+		// after setting the value via default
+		if v, ok := envVar.Value.(*stringValue); ok {
+			value := v.Get()
+			if val, okay := value.(string); okay && val == "" {
+				return ErrEnvironmentVariableIsEmpty
+			}
+		}
+
+		if v, ok := envVar.Value.(*tcpAddrValue); ok {
+			value := v.Get()
+			if val, okay := value.(string); okay {
+				if err := ValidateTCPNetworkAddress(val); err != nil {
+					return fmt.Errorf("%w", err)
+				}
+			}
 		}
 	}
 
@@ -164,7 +194,7 @@ func newEnvironmentVariableSet() *EnvironmentVariableSet {
 // Parse handles environment variable set/assign operations.
 func Parse() error {
 	if err := environmentVariableSetInstance.Parse(); err != nil {
-		return fmt.Errorf("can not set/assign environment variables %w", err)
+		return fmt.Errorf("can not set/assign environment variables: %w", err)
 	}
 
 	return nil

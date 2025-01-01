@@ -1,6 +1,7 @@
 package getenv
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -16,7 +17,7 @@ func newDurationValue(val time.Duration, p *time.Duration) *durationValue {
 func (d *durationValue) Set(s string) error {
 	v, err := time.ParseDuration(s)
 	if err != nil {
-		return fmt.Errorf("parse duration error: %w", err)
+		return errors.Join(ErrInvalid, fmt.Errorf("parse duration error: %w", err))
 	}
 	*d = durationValue(v)
 

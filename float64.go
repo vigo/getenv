@@ -1,6 +1,7 @@
 package getenv
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -16,7 +17,7 @@ func newFloat64Value(val float64, p *float64) *float64Value {
 func (f *float64Value) Set(s string) error {
 	v, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		return fmt.Errorf("parse float error: %w", err)
+		return errors.Join(ErrInvalid, fmt.Errorf("parse float error: %w", err))
 	}
 	*f = float64Value(v)
 

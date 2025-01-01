@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -153,7 +152,7 @@ func TestBool(t *testing.T) {
 			envName:       "TEST_BOOL_6",
 			defaultValue:  false,
 			exceptedValue: false,
-			expectedErr:   strconv.ErrSyntax,
+			expectedErr:   getenv.ErrInvalid,
 		},
 	}
 
@@ -175,7 +174,7 @@ func TestBool(t *testing.T) {
 }
 
 func TestInt(t *testing.T) {
-	os.Unsetenv("TEST_INT_NON_EXISTING_1")
+	os.Unsetenv("TEST_INT_NON_EXISTING")
 
 	os.Setenv("TEST_INT_1", "8000")
 	os.Setenv("TEST_INT_2", "invalid")
@@ -194,7 +193,7 @@ func TestInt(t *testing.T) {
 	}{
 		{
 			testName:      "non existing env-var has default 999 should have 999",
-			envName:       "TEST_INT_NON_EXISTING_1",
+			envName:       "TEST_INT_NON_EXISTING",
 			defaultValue:  999,
 			exceptedValue: 999,
 			expectedErr:   nil,
@@ -211,7 +210,7 @@ func TestInt(t *testing.T) {
 			envName:       "TEST_INT_2",
 			defaultValue:  4000,
 			exceptedValue: 0,
-			expectedErr:   strconv.ErrSyntax,
+			expectedErr:   getenv.ErrInvalid,
 		},
 	}
 
@@ -233,7 +232,7 @@ func TestInt(t *testing.T) {
 }
 
 func TestInt64(t *testing.T) {
-	os.Unsetenv("TEST_INT64_NON_EXISTING_1")
+	os.Unsetenv("TEST_INT64_NON_EXISTING")
 
 	os.Setenv("TEST_INT64_1", "-123456789012")
 	os.Setenv("TEST_INT64_2", "abc")
@@ -254,7 +253,7 @@ func TestInt64(t *testing.T) {
 	}{
 		{
 			testName:      "non existing env-var has default '1' should have '1'",
-			envName:       "TEST_INT64_NON_EXISTING_1",
+			envName:       "TEST_INT64_NON_EXISTING",
 			defaultValue:  int64(1),
 			exceptedValue: int64(1),
 			expectedErr:   nil,
@@ -271,14 +270,14 @@ func TestInt64(t *testing.T) {
 			envName:       "TEST_INT64_2",
 			defaultValue:  0,
 			exceptedValue: 0,
-			expectedErr:   strconv.ErrSyntax,
+			expectedErr:   getenv.ErrInvalid,
 		},
 		{
 			testName:      "existing env-var has '9223372036854775808123' default '0' should have an error",
 			envName:       "TEST_INT64_3",
 			defaultValue:  0,
 			exceptedValue: 0,
-			expectedErr:   strconv.ErrRange,
+			expectedErr:   getenv.ErrInvalid,
 		},
 	}
 
@@ -301,7 +300,7 @@ func TestInt64(t *testing.T) {
 }
 
 func TestFloat64(t *testing.T) {
-	os.Unsetenv("TEST_FLOAT64_NON_EXISTING_1")
+	os.Unsetenv("TEST_FLOAT64_NON_EXISTING")
 
 	os.Setenv("TEST_FLOAT64_1", "-1")
 	os.Setenv("TEST_FLOAT64_2", "abc")
@@ -321,7 +320,7 @@ func TestFloat64(t *testing.T) {
 	}{
 		{
 			testName:      "non existing env-var has default '3.14' should have '3.14'",
-			envName:       "TEST_FLOAT64_NON_EXISTING_1",
+			envName:       "TEST_FLOAT64_NON_EXISTING",
 			defaultValue:  float64(3.14),
 			exceptedValue: float64(3.14),
 			expectedErr:   nil,
@@ -338,14 +337,14 @@ func TestFloat64(t *testing.T) {
 			envName:       "TEST_FLOAT64_2",
 			defaultValue:  0,
 			exceptedValue: 0,
-			expectedErr:   strconv.ErrSyntax,
+			expectedErr:   getenv.ErrInvalid,
 		},
 		{
 			testName:      "existing env-var has invalid value (range) should have an error",
 			envName:       "TEST_FLOAT64_3",
 			defaultValue:  0,
 			exceptedValue: 0,
-			expectedErr:   strconv.ErrRange,
+			expectedErr:   getenv.ErrInvalid,
 		},
 	}
 
@@ -368,7 +367,7 @@ func TestFloat64(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	os.Unsetenv("TEST_STRING_NON_EXISTING_1")
+	os.Unsetenv("TEST_STRING_NON_EXISTING")
 
 	os.Setenv("TEST_STRING_1", "application/json")
 	os.Setenv("TEST_STRING_2", "")
@@ -387,7 +386,7 @@ func TestString(t *testing.T) {
 	}{
 		{
 			testName:      "non existing env-var has default 'X-Foo' should have 'X-Foo'",
-			envName:       "TEST_STRING_NON_EXISTING_1",
+			envName:       "TEST_STRING_NON_EXISTING",
 			defaultValue:  "X-Foo",
 			exceptedValue: "X-Foo",
 			expectedErr:   nil,
@@ -426,7 +425,7 @@ func TestString(t *testing.T) {
 }
 
 func TestDuration(t *testing.T) {
-	os.Unsetenv("TEST_DURATION_NON_EXISTING_1")
+	os.Unsetenv("TEST_DURATION_NON_EXISTING")
 
 	os.Setenv("TEST_DURATION_1", "10s")
 	os.Setenv("TEST_DURATION_2", "invalid")
@@ -441,28 +440,28 @@ func TestDuration(t *testing.T) {
 		envName       string
 		defaultValue  time.Duration
 		exceptedValue time.Duration
-		expectedErr   bool
+		expectedErr   error
 	}{
 		{
 			testName:      "non existing env-var has default '5 seconds' should have '5 seconds'",
-			envName:       "TEST_DURATION_NON_EXISTING_1",
+			envName:       "TEST_DURATION_NON_EXISTING",
 			defaultValue:  5 * time.Second,
 			exceptedValue: 5 * time.Second,
-			expectedErr:   false,
+			expectedErr:   nil,
 		},
 		{
 			testName:      "existing env-var has '10s' default '1s' should have '10s'",
 			envName:       "TEST_DURATION_1",
 			defaultValue:  time.Second,
 			exceptedValue: 10 * time.Second,
-			expectedErr:   false,
+			expectedErr:   nil,
 		},
 		{
 			testName:      "existing env-var has invalid value should have an error",
 			envName:       "TEST_DURATION_2",
 			defaultValue:  0,
 			exceptedValue: 0,
-			expectedErr:   true,
+			expectedErr:   getenv.ErrInvalid,
 		},
 	}
 
@@ -471,13 +470,86 @@ func TestDuration(t *testing.T) {
 			val := getenv.Duration(tc.envName, tc.defaultValue)
 			err := getenv.Parse()
 
-			if tc.expectedErr && err == nil {
-				t.Error("want [error], got: [nil]")
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("err, want [%v], got: [%v]", tc.expectedErr, err)
 			}
 
 			if err == nil {
 				if *val != tc.exceptedValue {
 					t.Errorf("want [%v], got: [%v]", tc.exceptedValue, *val)
+				}
+			}
+			getenv.Reset()
+		})
+	}
+}
+
+func TestTCPAddr(t *testing.T) {
+	os.Unsetenv("TEST_TCPADDR_NON_EXISTING")
+
+	os.Setenv("TEST_TCPADDR_1", ":4000")
+	os.Setenv("TEST_TCPADDR_2", "invalid")
+
+	defer func() {
+		os.Unsetenv("TEST_TCPADDR_1")
+		os.Unsetenv("TEST_TCPADDR_2")
+	}()
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  string
+		exceptedValue string
+		expectedErr   error
+	}{
+		{
+			testName:      "non existing env-var has default ':9002' should have ':9002'",
+			envName:       "TEST_TCPADDR_NON_EXISTING",
+			defaultValue:  ":9002",
+			exceptedValue: ":9002",
+			expectedErr:   nil,
+		},
+		{
+			testName:      "non existing env-var has default invalid 'addr' should have an error",
+			envName:       "TEST_TCPADDR_NON_EXISTING",
+			defaultValue:  "invalid",
+			exceptedValue: "",
+			expectedErr:   getenv.ErrInvalid,
+		},
+		{
+			testName:      "non existing env-var has default invalid 'addr' should have an error",
+			envName:       "TEST_TCPADDR_NON_EXISTING",
+			defaultValue:  "invalid",
+			exceptedValue: "",
+			expectedErr:   getenv.ErrInvalid,
+		},
+		{
+			testName:      "existing env-var has ':4000' default is ':9000' should have ':4000'",
+			envName:       "TEST_TCPADDR_1",
+			defaultValue:  ":9000",
+			exceptedValue: ":4000",
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has 'invalid' default is ':9000' should have an error",
+			envName:       "TEST_TCPADDR_2",
+			defaultValue:  ":9000",
+			exceptedValue: "",
+			expectedErr:   getenv.ErrInvalid,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.TCPAddr(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("err, want [%v], got: [%v]", tc.expectedErr, err)
+			}
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want [%s], got: [%s]", tc.exceptedValue, *val)
 				}
 			}
 			getenv.Reset()

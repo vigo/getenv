@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/vigo/getenv"
 )
@@ -18,7 +19,7 @@ func ExampleBool() {
 	}
 
 	fmt.Println(*color)
-	// Outputs: false
+	// Output: false
 }
 
 func ExampleInt() {
@@ -28,7 +29,7 @@ func ExampleInt() {
 	}
 
 	fmt.Println(*port)
-	// Outputs: 8000
+	// Output: 8000
 }
 
 func ExampleInt64() {
@@ -38,7 +39,17 @@ func ExampleInt64() {
 	}
 
 	fmt.Println(*long)
-	// Outputs: 9223372036854775806
+	// Output: 9223372036854775806
+}
+
+func ExampleFloat64() {
+	xFactor := getenv.Float64("X_FACTOR", 1.1)
+	if err := getenv.Parse(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(*xFactor)
+	// Output: 1.1
 }
 
 func ExampleString() {
@@ -48,7 +59,17 @@ func ExampleString() {
 	}
 
 	fmt.Println(*hmacHeader)
-	// Outputs: X-Foo-Signature
+	// Output: X-Foo-Signature
+}
+
+func ExampleDuration() {
+	timeout := getenv.Duration("SERVER_TIMEOUT", 5*time.Second)
+	if err := getenv.Parse(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(*timeout)
+	// Output: 5s
 }
 
 func TestBool(t *testing.T) {
@@ -141,11 +162,11 @@ func TestBool(t *testing.T) {
 			val := getenv.Bool(tc.envName, tc.defaultValue)
 			err := getenv.Parse()
 			if !errors.Is(err, tc.expectedErr) {
-				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}
 			if err == nil {
 				if *val != tc.exceptedValue {
-					t.Errorf("want %t, got: %t", tc.exceptedValue, *val)
+					t.Errorf("want [%t], got: [%t]", tc.exceptedValue, *val)
 				}
 			}
 			getenv.Reset()
@@ -199,11 +220,11 @@ func TestInt(t *testing.T) {
 			val := getenv.Int(tc.envName, tc.defaultValue)
 			err := getenv.Parse()
 			if !errors.Is(err, tc.expectedErr) {
-				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}
 			if err == nil {
 				if *val != tc.exceptedValue {
-					t.Errorf("want %d, got: %d", tc.exceptedValue, *val)
+					t.Errorf("want [%d], got: [%d]", tc.exceptedValue, *val)
 				}
 			}
 			getenv.Reset()
@@ -267,11 +288,11 @@ func TestInt64(t *testing.T) {
 			err := getenv.Parse()
 
 			if !errors.Is(err, tc.expectedErr) {
-				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}
 			if err == nil {
 				if *val != tc.exceptedValue {
-					t.Errorf("want %d, got: %d", tc.exceptedValue, *val)
+					t.Errorf("want [%d], got: [%d]", tc.exceptedValue, *val)
 				}
 			}
 			getenv.Reset()
@@ -334,11 +355,11 @@ func TestFloat64(t *testing.T) {
 			err := getenv.Parse()
 
 			if !errors.Is(err, tc.expectedErr) {
-				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}
 			if err == nil {
 				if *val != tc.exceptedValue {
-					t.Errorf("want %f, got: %f", tc.exceptedValue, *val)
+					t.Errorf("want [%f], got: [%f]", tc.exceptedValue, *val)
 				}
 			}
 			getenv.Reset()
@@ -392,11 +413,71 @@ func TestString(t *testing.T) {
 			val := getenv.String(tc.envName, tc.defaultValue)
 			err := getenv.Parse()
 			if !errors.Is(err, tc.expectedErr) {
-				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}
 			if err == nil {
 				if *val != tc.exceptedValue {
-					t.Errorf("want %s, got: %s", tc.exceptedValue, *val)
+					t.Errorf("want [%s], got: [%s]", tc.exceptedValue, *val)
+				}
+			}
+			getenv.Reset()
+		})
+	}
+}
+
+func TestDuration(t *testing.T) {
+	os.Unsetenv("TEST_DURATION_NON_EXISTING_1")
+
+	os.Setenv("TEST_DURATION_1", "10s")
+	os.Setenv("TEST_DURATION_2", "invalid")
+
+	defer func() {
+		os.Unsetenv("TEST_DURATION_1")
+		os.Unsetenv("TEST_DURATION_2")
+	}()
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  time.Duration
+		exceptedValue time.Duration
+		expectedErr   bool
+	}{
+		{
+			testName:      "non existing env-var has default '5 seconds' should have '5 seconds'",
+			envName:       "TEST_DURATION_NON_EXISTING_1",
+			defaultValue:  5 * time.Second,
+			exceptedValue: 5 * time.Second,
+			expectedErr:   false,
+		},
+		{
+			testName:      "existing env-var has '10s' default '1s' should have '10s'",
+			envName:       "TEST_DURATION_1",
+			defaultValue:  time.Second,
+			exceptedValue: 10 * time.Second,
+			expectedErr:   false,
+		},
+		{
+			testName:      "existing env-var has invalid value should have an error",
+			envName:       "TEST_DURATION_2",
+			defaultValue:  0,
+			exceptedValue: 0,
+			expectedErr:   true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.Duration(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
+
+			if tc.expectedErr && err == nil {
+				t.Error("want [error], got: [nil]")
+			}
+
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want [%v], got: [%v]", tc.exceptedValue, *val)
 				}
 			}
 			getenv.Reset()

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 )
 
 // sentinel errors.
@@ -20,12 +21,14 @@ type Value interface {
 	Get() any
 }
 
+// compile time proofs.
 var (
 	_ Value = (*boolValue)(nil)
 	_ Value = (*intValue)(nil)
 	_ Value = (*stringValue)(nil)
 	_ Value = (*int64Value)(nil)
 	_ Value = (*float64Value)(nil)
+	_ Value = (*durationValue)(nil)
 )
 
 // EnvironmentVariable represents environment variable.
@@ -91,6 +94,14 @@ func (e *EnvironmentVariableSet) String(name string, value string) *string {
 	return p
 }
 
+// Duration creates new duration.
+func (e *EnvironmentVariableSet) Duration(name string, value time.Duration) *time.Duration {
+	p := new(time.Duration)
+	e.DurationVar(p, name, value)
+
+	return p
+}
+
 // BoolVar creates new bool variable.
 func (e *EnvironmentVariableSet) BoolVar(p *bool, name string, value bool) {
 	e.Var(newBoolValue(value, p), name)
@@ -114,6 +125,11 @@ func (e *EnvironmentVariableSet) Float64Var(p *float64, name string, value float
 // StringVar creates new string variable.
 func (e *EnvironmentVariableSet) StringVar(p *string, name string, value string) {
 	e.Var(newStringValue(value, p), name)
+}
+
+// DurationVar creates new duration variable.
+func (e *EnvironmentVariableSet) DurationVar(p *time.Duration, name string, value time.Duration) {
+	e.Var(newDurationValue(value, p), name)
 }
 
 // Parse fetches environment variable, creates required Value, sets and stores.

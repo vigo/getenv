@@ -279,6 +279,73 @@ func TestInt64(t *testing.T) {
 	}
 }
 
+func TestFloat64(t *testing.T) {
+	os.Unsetenv("TEST_FLOAT64_NON_EXISTING_1")
+
+	os.Setenv("TEST_FLOAT64_1", "-1")
+	os.Setenv("TEST_FLOAT64_2", "abc")
+	os.Setenv("TEST_FLOAT64_3", "1e500")
+
+	defer func() {
+		os.Unsetenv("TEST_INT64_1")
+		os.Unsetenv("TEST_INT64_2")
+	}()
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  float64
+		exceptedValue float64
+		expectedErr   error
+	}{
+		{
+			testName:      "non existing env-var has default '3.14' should have '3.14'",
+			envName:       "TEST_FLOAT64_NON_EXISTING_1",
+			defaultValue:  float64(3.14),
+			exceptedValue: float64(3.14),
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has '-1' value should have '-1.0'",
+			envName:       "TEST_FLOAT64_1",
+			defaultValue:  0,
+			exceptedValue: float64(-1.0),
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var has invalid value should have an error",
+			envName:       "TEST_FLOAT64_2",
+			defaultValue:  0,
+			exceptedValue: 0,
+			expectedErr:   strconv.ErrSyntax,
+		},
+		{
+			testName:      "existing env-var has invalid value (range) should have an error",
+			envName:       "TEST_FLOAT64_3",
+			defaultValue:  0,
+			exceptedValue: 0,
+			expectedErr:   strconv.ErrRange,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.Float64(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("want %v, got: %v", tc.expectedErr, err)
+			}
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want %f, got: %f", tc.exceptedValue, *val)
+				}
+			}
+			getenv.Reset()
+		})
+	}
+}
+
 func TestString(t *testing.T) {
 	os.Unsetenv("TEST_STRING_NON_EXISTING_1")
 

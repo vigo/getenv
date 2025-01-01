@@ -25,6 +25,7 @@ var (
 	_ Value = (*intValue)(nil)
 	_ Value = (*stringValue)(nil)
 	_ Value = (*int64Value)(nil)
+	_ Value = (*float64Value)(nil)
 )
 
 // EnvironmentVariable represents environment variable.
@@ -74,6 +75,14 @@ func (e *EnvironmentVariableSet) Int64(name string, value int64) *int64 {
 	return p
 }
 
+// Float64 creates new float64.
+func (e *EnvironmentVariableSet) Float64(name string, value float64) *float64 {
+	p := new(float64)
+	e.Float64Var(p, name, value)
+
+	return p
+}
+
 // String creates new string.
 func (e *EnvironmentVariableSet) String(name string, value string) *string {
 	p := new(string)
@@ -95,6 +104,11 @@ func (e *EnvironmentVariableSet) IntVar(p *int, name string, value int) {
 // Int64Var creates new int64 variable.
 func (e *EnvironmentVariableSet) Int64Var(p *int64, name string, value int64) {
 	e.Var(newInt64Value(value, p), name)
+}
+
+// Float64Var creates new float64 variable.
+func (e *EnvironmentVariableSet) Float64Var(p *float64, name string, value float64) {
+	e.Var(newFloat64Value(value, p), name)
 }
 
 // StringVar creates new string variable.

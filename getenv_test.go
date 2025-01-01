@@ -71,6 +71,16 @@ func ExampleDuration() {
 	// Output: 5s
 }
 
+func ExampleTCPAddr() {
+	listen := getenv.TCPAddr("LISTEN", ":4000")
+	if err := getenv.Parse(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(*listen)
+	// Output: :4000
+}
+
 func TestBool(t *testing.T) {
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_1")
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_2")

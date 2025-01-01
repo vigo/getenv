@@ -2,7 +2,7 @@ task :default => [:test]
 
 desc 'run test'
 task :test do
-  system %{ go test -v -coverprofile=coverage.out ./... }
+  system %{ go test -failfast -v -coverprofile=coverage.out ./... }
   exit $?.exitstatus
 end
 

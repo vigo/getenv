@@ -1,7 +1,6 @@
 package getenv
 
 import (
-	"errors"
 	"fmt"
 	"net"
 )
@@ -15,10 +14,16 @@ func newTCPAddrValue(val string, p *string) *tcpAddrValue {
 }
 
 func (s *tcpAddrValue) Set(val string) error {
-	if err := ValidateTCPNetworkAddress(val); err != nil {
-		return fmt.Errorf("invalid tcp address %w", err)
+	if val == "" {
+		return fmt.Errorf("[%w]", ErrEnvironmentVariableIsEmpty)
 	}
-	*s = tcpAddrValue(val)
+
+	tcpAddr, err := ValidateTCPNetworkAddress(val)
+	if err != nil {
+		return fmt.Errorf("[%w] %w", ErrInvalid, err)
+	}
+
+	*s = tcpAddrValue(tcpAddr.String())
 
 	return nil
 }
@@ -32,10 +37,11 @@ func TCPAddr(name string, value string) *string {
 
 // ValidateTCPNetworkAddress validates given tcp address as string and
 // returns an error if the provided arg is not a valid tcp address.
-func ValidateTCPNetworkAddress(addr string) error {
-	if _, err := net.ResolveTCPAddr("tcp", addr); err != nil {
-		return errors.Join(ErrInvalid, fmt.Errorf("invalid tcp addr: %w", err))
+func ValidateTCPNetworkAddress(addr string) (*net.TCPAddr, error) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
 
-	return nil
+	return tcpAddr, nil
 }

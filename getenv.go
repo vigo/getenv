@@ -152,26 +152,23 @@ func (e *EnvironmentVariableSet) Parse() error {
 	for name, envVar := range e.variables {
 		envValue := os.Getenv(name)
 
-		// setting the env-var value
+		// if environment variable is not empty.
 		if envValue != "" {
+			// set the environment variable's value.
 			if err := envVar.Value.Set(envValue); err != nil {
-				return fmt.Errorf("error setting %s %w", name, err)
+				return fmt.Errorf("%q %w", name, err)
 			}
 		}
 
-		// after setting the value via default
-		if v, ok := envVar.Value.(*stringValue); ok {
-			value := v.Get()
-			if val, okay := value.(string); okay && val == "" {
-				return ErrEnvironmentVariableIsEmpty
-			}
+		// if the current value is empty?
+		if envVar.Value.Get() == "" {
+			return fmt.Errorf("%q %w", name, ErrEnvironmentVariableIsEmpty)
 		}
 
 		if v, ok := envVar.Value.(*tcpAddrValue); ok {
-			value := v.Get()
-			if val, okay := value.(string); okay {
-				if err := ValidateTCPNetworkAddress(val); err != nil {
-					return fmt.Errorf("%w", err)
+			if val, okay := v.Get().(string); okay {
+				if _, err := ValidateTCPNetworkAddress(val); err != nil {
+					return fmt.Errorf("%q [%w] %w", name, ErrInvalid, err)
 				}
 			}
 		}
@@ -194,7 +191,7 @@ func newEnvironmentVariableSet() *EnvironmentVariableSet {
 // Parse handles environment variable set/assign operations.
 func Parse() error {
 	if err := environmentVariableSetInstance.Parse(); err != nil {
-		return fmt.Errorf("can not set/assign environment variables: %w", err)
+		return fmt.Errorf("%w", err)
 	}
 
 	return nil

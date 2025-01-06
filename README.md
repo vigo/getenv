@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/version-0.0.1-orange.svg)
+![Version](https://img.shields.io/badge/version-0.0.2-orange.svg)
 ![Go](https://img.shields.io/github/go-mod/go-version/vigo/getenv)
 [![Test go code](https://github.com/vigo/getenv/actions/workflows/test.yml/badge.svg)](https://github.com/vigo/getenv/actions/workflows/test.yml)
 [![golangci-lint](https://github.com/vigo/getenv/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/vigo/getenv/actions/workflows/golangci-lint.yml)

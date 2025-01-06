@@ -3,7 +3,6 @@ package getenv_test
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -14,7 +13,8 @@ import (
 func ExampleBool() {
 	color := getenv.Bool("COLOR", false)
 	if err := getenv.Parse(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Println(*color)
@@ -24,7 +24,8 @@ func ExampleBool() {
 func ExampleInt() {
 	port := getenv.Int("PORT", 8000)
 	if err := getenv.Parse(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Println(*port)
@@ -34,7 +35,8 @@ func ExampleInt() {
 func ExampleInt64() {
 	long := getenv.Int64("LONG", 9223372036854775806)
 	if err := getenv.Parse(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Println(*long)
@@ -44,7 +46,8 @@ func ExampleInt64() {
 func ExampleFloat64() {
 	xFactor := getenv.Float64("X_FACTOR", 1.1)
 	if err := getenv.Parse(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Println(*xFactor)
@@ -54,7 +57,8 @@ func ExampleFloat64() {
 func ExampleString() {
 	hmacHeader := getenv.String("HMAC_HEADER", "X-Foo-Signature")
 	if err := getenv.Parse(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Println(*hmacHeader)
@@ -64,7 +68,8 @@ func ExampleString() {
 func ExampleDuration() {
 	timeout := getenv.Duration("SERVER_TIMEOUT", 5*time.Second)
 	if err := getenv.Parse(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Println(*timeout)
@@ -74,7 +79,8 @@ func ExampleDuration() {
 func ExampleTCPAddr() {
 	listen := getenv.TCPAddr("LISTEN", ":4000")
 	if err := getenv.Parse(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Println(*listen)
@@ -170,6 +176,7 @@ func TestBool(t *testing.T) {
 		t.Run(tc.testName, func(t *testing.T) {
 			val := getenv.Bool(tc.envName, tc.defaultValue)
 			err := getenv.Parse()
+
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}
@@ -228,6 +235,7 @@ func TestInt(t *testing.T) {
 		t.Run(tc.testName, func(t *testing.T) {
 			val := getenv.Int(tc.envName, tc.defaultValue)
 			err := getenv.Parse()
+
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}
@@ -421,6 +429,7 @@ func TestString(t *testing.T) {
 		t.Run(tc.testName, func(t *testing.T) {
 			val := getenv.String(tc.envName, tc.defaultValue)
 			err := getenv.Parse()
+
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf("want [%v], got: [%v]", tc.expectedErr, err)
 			}

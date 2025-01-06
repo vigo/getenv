@@ -1,7 +1,6 @@
 package getenv
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 )
@@ -17,7 +16,7 @@ func newInt64Value(val int64, p *int64) *int64Value {
 func (i *int64Value) Set(s string) error {
 	v, err := strconv.ParseInt(s, 0, 64)
 	if err != nil {
-		return errors.Join(ErrInvalid, fmt.Errorf("parse int error: %w", err))
+		return fmt.Errorf("[%w] %w", ErrInvalid, err)
 	}
 	*i = int64Value(v)
 

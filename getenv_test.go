@@ -98,6 +98,23 @@ func ExampleStringSlice() {
 	// Output: [:9092 :9093]
 }
 
+func ExampleLogLevel() {
+	levels := map[string]int{
+		"DEBUG": 0,
+		"INFO":  1,
+		"WARN":  2,
+		"ERROR": 3,
+	}
+	logLevel := getenv.LogLevel("LOG_LEVEL", levels, 1)
+	if err := getenv.Parse(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(*logLevel)
+	// Output: 1
+}
+
 func TestBool(t *testing.T) {
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_1")
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_2")
@@ -671,6 +688,90 @@ func TestStringSlice(t *testing.T) {
 					if v != tc.exceptedValue[i] {
 						t.Errorf("index %d, want [%s], got: [%s]", i, tc.exceptedValue[i], v)
 					}
+				}
+			}
+			getenv.Reset()
+		})
+	}
+}
+
+func TestLogLevel(t *testing.T) {
+	os.Unsetenv("TEST_LOGLEVEL_NON_EXISTING")
+
+	os.Setenv("TEST_LOGLEVEL_1", "DEBUG")
+	os.Setenv("TEST_LOGLEVEL_2", "error")
+	os.Setenv("TEST_LOGLEVEL_3", "Info")
+	os.Setenv("TEST_LOGLEVEL_4", "UNKNOWN")
+
+	defer func() {
+		os.Unsetenv("TEST_LOGLEVEL_1")
+		os.Unsetenv("TEST_LOGLEVEL_2")
+		os.Unsetenv("TEST_LOGLEVEL_3")
+		os.Unsetenv("TEST_LOGLEVEL_4")
+	}()
+
+	levels := map[string]int{
+		"DEBUG": 0,
+		"INFO":  1,
+		"WARN":  2,
+		"ERROR": 3,
+	}
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  int
+		exceptedValue int
+		expectedErr   error
+	}{
+		{
+			testName:      "non existing env-var has default should have default",
+			envName:       "TEST_LOGLEVEL_NON_EXISTING",
+			defaultValue:  1,
+			exceptedValue: 1,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with DEBUG should have 0",
+			envName:       "TEST_LOGLEVEL_1",
+			defaultValue:  1,
+			exceptedValue: 0,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with lowercase error should have 3",
+			envName:       "TEST_LOGLEVEL_2",
+			defaultValue:  1,
+			exceptedValue: 3,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with mixed case Info should have 1",
+			envName:       "TEST_LOGLEVEL_3",
+			defaultValue:  0,
+			exceptedValue: 1,
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with unknown level should have an error",
+			envName:       "TEST_LOGLEVEL_4",
+			defaultValue:  1,
+			exceptedValue: 0,
+			expectedErr:   getenv.ErrInvalid,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.LogLevel(tc.envName, levels, tc.defaultValue)
+			err := getenv.Parse()
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("err, want [%v], got: [%v]", tc.expectedErr, err)
+			}
+			if err == nil {
+				if *val != tc.exceptedValue {
+					t.Errorf("want [%d], got: [%d]", tc.exceptedValue, *val)
 				}
 			}
 			getenv.Reset()

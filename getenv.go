@@ -32,6 +32,7 @@ var (
 	_ Value = (*float64Value)(nil)
 	_ Value = (*durationValue)(nil)
 	_ Value = (*tcpAddrValue)(nil)
+	_ Value = (*logLevelValue)(nil)
 )
 
 // EnvironmentVariable represents environment variable.
@@ -121,6 +122,14 @@ func (e *EnvironmentVariableSet) StringSlice(name string, value []string) *[]str
 	return p
 }
 
+// LogLevel creates new log level.
+func (e *EnvironmentVariableSet) LogLevel(name string, levels map[string]int, value int) *int {
+	p := new(int)
+	e.LogLevelVar(p, name, levels, value)
+
+	return p
+}
+
 // BoolVar creates new bool variable.
 func (e *EnvironmentVariableSet) BoolVar(p *bool, name string, value bool) {
 	e.Var(newBoolValue(value, p), name)
@@ -159,6 +168,11 @@ func (e *EnvironmentVariableSet) TCPAddrVar(p *string, name string, value string
 // StringSliceVar creates new string slice variable.
 func (e *EnvironmentVariableSet) StringSliceVar(p *[]string, name string, value []string) {
 	e.Var(newStringSliceValue(value, p), name)
+}
+
+// LogLevelVar creates new log level variable.
+func (e *EnvironmentVariableSet) LogLevelVar(p *int, name string, levels map[string]int, value int) {
+	e.Var(newLogLevelValue(levels, value, p), name)
 }
 
 // Parse fetches environment variable, creates required Value, sets and stores.

@@ -87,6 +87,17 @@ func ExampleTCPAddr() {
 	// Output: :4000
 }
 
+func ExampleStringSlice() {
+	brokers := getenv.StringSlice("BROKERS", []string{":9092", ":9093"})
+	if err := getenv.Parse(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(*brokers)
+	// Output: [:9092 :9093]
+}
+
 func TestBool(t *testing.T) {
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_1")
 	os.Unsetenv("TEST_BOOL_NON_EXISTING_2")
@@ -569,6 +580,97 @@ func TestTCPAddr(t *testing.T) {
 			if err == nil {
 				if *val != tc.exceptedValue {
 					t.Errorf("want [%s], got: [%s]", tc.exceptedValue, *val)
+				}
+			}
+			getenv.Reset()
+		})
+	}
+}
+
+func TestStringSlice(t *testing.T) {
+	os.Unsetenv("TEST_STRINGSLICE_NON_EXISTING")
+
+	os.Setenv("TEST_STRINGSLICE_1", ":9092,:9093,127.0.0.1:9094")
+	os.Setenv("TEST_STRINGSLICE_2", "single")
+	os.Setenv("TEST_STRINGSLICE_3", " a , b , c ")
+	os.Setenv("TEST_STRINGSLICE_4", "a,,b")
+	os.Setenv("TEST_STRINGSLICE_5", "")
+
+	defer func() {
+		os.Unsetenv("TEST_STRINGSLICE_1")
+		os.Unsetenv("TEST_STRINGSLICE_2")
+		os.Unsetenv("TEST_STRINGSLICE_3")
+		os.Unsetenv("TEST_STRINGSLICE_4")
+		os.Unsetenv("TEST_STRINGSLICE_5")
+	}()
+
+	tcs := []struct {
+		testName      string
+		envName       string
+		defaultValue  []string
+		exceptedValue []string
+		expectedErr   error
+	}{
+		{
+			testName:      "non existing env-var has default should have default",
+			envName:       "TEST_STRINGSLICE_NON_EXISTING",
+			defaultValue:  []string{"default1", "default2"},
+			exceptedValue: []string{"default1", "default2"},
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with comma separated values",
+			envName:       "TEST_STRINGSLICE_1",
+			defaultValue:  nil,
+			exceptedValue: []string{":9092", ":9093", "127.0.0.1:9094"},
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with single value",
+			envName:       "TEST_STRINGSLICE_2",
+			defaultValue:  nil,
+			exceptedValue: []string{"single"},
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with spaces should be trimmed",
+			envName:       "TEST_STRINGSLICE_3",
+			defaultValue:  nil,
+			exceptedValue: []string{"a", "b", "c"},
+			expectedErr:   nil,
+		},
+		{
+			testName:      "existing env-var with empty items should filter them",
+			envName:       "TEST_STRINGSLICE_4",
+			defaultValue:  nil,
+			exceptedValue: []string{"a", "b"},
+			expectedErr:   nil,
+		},
+		{
+			testName:      "empty env-var with nil default should have an error",
+			envName:       "TEST_STRINGSLICE_5",
+			defaultValue:  nil,
+			exceptedValue: nil,
+			expectedErr:   getenv.ErrEnvironmentVariableIsEmpty,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.testName, func(t *testing.T) {
+			val := getenv.StringSlice(tc.envName, tc.defaultValue)
+			err := getenv.Parse()
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("err, want [%v], got: [%v]", tc.expectedErr, err)
+			}
+			if err == nil {
+				if len(*val) != len(tc.exceptedValue) {
+					t.Errorf("len, want [%d], got: [%d]", len(tc.exceptedValue), len(*val))
+				}
+				for i, v := range *val {
+					if v != tc.exceptedValue[i] {
+						t.Errorf("index %d, want [%s], got: [%s]", i, tc.exceptedValue[i], v)
+					}
 				}
 			}
 			getenv.Reset()

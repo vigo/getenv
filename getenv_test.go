@@ -778,3 +778,30 @@ func TestLogLevel(t *testing.T) {
 		})
 	}
 }
+
+func TestLogLevelWithLowercaseMapKeys(t *testing.T) {
+	os.Setenv("TEST_LOGLEVEL_LOWERCASE", "DEBUG")
+
+	defer func() {
+		os.Unsetenv("TEST_LOGLEVEL_LOWERCASE")
+	}()
+
+	// map keys are lowercase/mixed case
+	levels := map[string]int{
+		"debug": 0,
+		"Info":  1,
+		"WARN":  2,
+		"error": 3,
+	}
+
+	val := getenv.LogLevel("TEST_LOGLEVEL_LOWERCASE", levels, 1)
+	err := getenv.Parse()
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if *val != 0 {
+		t.Errorf("want [0], got: [%d]", *val)
+	}
+	getenv.Reset()
+}

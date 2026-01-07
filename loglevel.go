@@ -13,7 +13,13 @@ type logLevelValue struct {
 func newLogLevelValue(levels map[string]int, def int, p *int) *logLevelValue {
 	*p = def
 
-	return &logLevelValue{val: p, levels: levels}
+	// normalize level keys to uppercase for case-insensitive lookup
+	normalizedLevels := make(map[string]int, len(levels))
+	for k, v := range levels {
+		normalizedLevels[strings.ToUpper(k)] = v
+	}
+
+	return &logLevelValue{val: p, levels: normalizedLevels}
 }
 
 func (l *logLevelValue) Set(s string) error {

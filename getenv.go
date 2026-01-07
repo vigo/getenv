@@ -27,6 +27,7 @@ var (
 	_ Value = (*boolValue)(nil)
 	_ Value = (*intValue)(nil)
 	_ Value = (*stringValue)(nil)
+	_ Value = (*stringSliceValue)(nil)
 	_ Value = (*int64Value)(nil)
 	_ Value = (*float64Value)(nil)
 	_ Value = (*durationValue)(nil)
@@ -112,6 +113,14 @@ func (e *EnvironmentVariableSet) TCPAddr(name string, value string) *string {
 	return p
 }
 
+// StringSlice creates new string slice.
+func (e *EnvironmentVariableSet) StringSlice(name string, value []string) *[]string {
+	p := new([]string)
+	e.StringSliceVar(p, name, value)
+
+	return p
+}
+
 // BoolVar creates new bool variable.
 func (e *EnvironmentVariableSet) BoolVar(p *bool, name string, value bool) {
 	e.Var(newBoolValue(value, p), name)
@@ -147,6 +156,11 @@ func (e *EnvironmentVariableSet) TCPAddrVar(p *string, name string, value string
 	e.Var(newTCPAddrValue(value, p), name)
 }
 
+// StringSliceVar creates new string slice variable.
+func (e *EnvironmentVariableSet) StringSliceVar(p *[]string, name string, value []string) {
+	e.Var(newStringSliceValue(value, p), name)
+}
+
 // Parse fetches environment variable, creates required Value, sets and stores.
 func (e *EnvironmentVariableSet) Parse() error {
 	for name, envVar := range e.variables {
@@ -163,6 +177,13 @@ func (e *EnvironmentVariableSet) Parse() error {
 		// if the current value is empty?
 		if envVar.Value.Get() == "" {
 			return fmt.Errorf("%q %w", name, ErrEnvironmentVariableIsEmpty)
+		}
+
+		// check if string slice is empty.
+		if v, ok := envVar.Value.(*stringSliceValue); ok {
+			if slice, okay := v.Get().([]string); okay && len(slice) == 0 {
+				return fmt.Errorf("%q %w", name, ErrEnvironmentVariableIsEmpty)
+			}
 		}
 
 		if v, ok := envVar.Value.(*tcpAddrValue); ok {

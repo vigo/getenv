@@ -27,9 +27,9 @@ getenv.Float64
 getenv.String
 getenv.Duration
 getenv.TCPAddr
+getenv.StringSlice
+getenv.LogLevel
 ```
-
-There are also plans to add support for custom types in the future.
 
 ---
 
@@ -112,12 +112,54 @@ fmt.Println(*timeout) // 5s as time.Duration
 For `getenv.TCPAddr`:
 
 ```go
-listen := getenv.TCPAddr("LISTEN", ":4000") // LISTEN doesn’t exist in the environment
+listen := getenv.TCPAddr("LISTEN", ":4000") // LISTEN doesn't exist in the environment
 if err := getenv.Parse(); err != nil {
 	log.Fatal(err)
 }
 
 fmt.Println(*listen) // :4000 as string
+```
+
+For `getenv.StringSlice`:
+
+```go
+// BROKERS doesn't exist in the environment
+brokers := getenv.StringSlice("BROKERS", []string{":9092", ":9093"})
+if err := getenv.Parse(); err != nil {
+	log.Fatal(err)
+}
+
+fmt.Println(*brokers) // [:9092 :9093] as []string
+
+// if BROKERS=":9092,:9093,127.0.0.1:9094" exists in the environment
+// result will be: [:9092 :9093 127.0.0.1:9094]
+// - values are split by comma
+// - whitespace is trimmed
+// - empty values are filtered out
+```
+
+For `getenv.LogLevel`:
+
+```go
+// define your custom log levels
+levels := map[string]int{
+	"DEBUG": 0,
+	"INFO":  1,
+	"WARN":  2,
+	"ERROR": 3,
+	"FATAL": 4,
+}
+
+// LOG_LEVEL doesn't exist in the environment, default is INFO (1)
+logLevel := getenv.LogLevel("LOG_LEVEL", levels, 1)
+if err := getenv.Parse(); err != nil {
+	log.Fatal(err)
+}
+
+fmt.Println(*logLevel) // 1 as int
+
+// if LOG_LEVEL=debug exists in the environment (case-insensitive)
+// result will be: 0
 ```
 
 For all of them together:
@@ -130,6 +172,11 @@ xFactor := getenv.Float64("X_FACTOR", 1.1)
 hmacHeader := getenv.String("HMAC_HEADER", "X-Foo-Signature")
 timeout := getenv.Duration("SERVER_TIMEOUT", 5*time.Second)
 listen := getenv.TCPAddr("LISTEN", ":4000")
+brokers := getenv.StringSlice("BROKERS", []string{":9092", ":9093"})
+
+levels := map[string]int{"DEBUG": 0, "INFO": 1, "WARN": 2, "ERROR": 3}
+logLevel := getenv.LogLevel("LOG_LEVEL", levels, 1)
+
 if err := getenv.Parse(); err != nil {
 	log.Fatal(err)
 }
